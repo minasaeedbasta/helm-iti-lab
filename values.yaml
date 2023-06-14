@@ -1,0 +1,87 @@
+namespace: jenkins
+
+controller:
+  componentName: jenkins
+  image: "jenkins/jenkins"
+  tagLabel: "lts-jdk11"
+  imagePullPolicy: "Always"
+  disableRememberMe: false
+
+  replicas: 1
+  revisionHistoryLimit: 10
+
+  jenkinsHome: "/var/jenkins_home"
+
+  useSecurityContext: true
+  runAsUser: 0
+  fsGroup: 1000
+
+  initContainers:
+  - name: install-docker
+    image: docker:stable
+    command: ["cp", "/usr/local/bin/docker", "/data/docker"]
+    volumeMounts:
+    - name: docker
+      mountPath: "/data"
+  - name: install-kubectl
+    image: eslamkarim/jenkins-ansible-kubectl
+    command: ["cp", "/usr/local/bin/kubectl", "/data/kubectl"]
+    volumeMounts:
+    - name: kubectl
+      mountPath: "/data"
+  
+  containerPorts:
+    - 8080
+    - 50000
+
+  readinessProbe:
+    failureThreshold: 5
+    httpGet:
+      path: /login
+      port: 8080
+      scheme: HTTP
+    periodSeconds: 10
+    successThreshold: 2
+    timeoutSeconds: 5
+
+  terminationMessagePath: /dev/termination-log
+  terminationMessagePolicy: File
+  
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+  schedulerName: default-scheduler
+  terminationGracePeriodSeconds: 30
+
+  servicePort: 80
+  targetPort: 8080
+  serviceType: LoadBalancer
+  agentListenerPort: 50000
+
+
+agent:
+  componentName: jenkins-ubuntu-slave
+  image: "kareemelkasaby/jenkins-slave-java-11"
+  imagePullPolicy: "Always"
+  disableRememberMe: false
+  containerPort: 22
+  
+  useSecurityContext: true
+  runAsUser: 0
+  fsGroup: 0
+
+
+
+
+persistence:
+  accessMode: "ReadWriteOnce"
+  size: "10Gi"
+  claimName: "claim-jenkins"
+
+serviceAccount:
+  create: true
+  name: jenkins
+  annotations: {}
+  extraLabels: {}
+  imagePullSecretName:
+  
+

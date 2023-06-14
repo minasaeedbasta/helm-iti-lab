@@ -1,0 +1,12 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{.Values.agent.componentName}}-svc
+  namespace: {{.Values.namespace}}
+spec:
+  selector:
+    app: {{.Values.agent.componentName}}
+  ports:
+  - protocol: TCP
+    port: 22
+    targetPort: 22

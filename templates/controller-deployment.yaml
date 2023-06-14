@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: {{.Values.controller.componentName}}
+  name: {{.Values.controller.componentName}}
+  namespace: {{.Values.namespace}}
+spec:
+  replicas: {{.Values.controller.replicas}}
+  revisionHistoryLimit: {{.Values.controller.revisionHistoryLimit}}
+  selector:
+    matchLabels:
+      app: {{.Values.controller.componentName}}
+  template:
+    metadata:
+      labels:
+        app: {{.Values.controller.componentName}}
+    spec:
+      {{- if .Values.controller.useSecurityContext }}
+      securityContext:
+        fsGroup: {{.Values.controller.fsGroup}} 
+        runAsUser: {{.Values.controller.runAsUser}}
+      {{- end }}
+      initContainers:
+      {{- range $key1,$value1 := .Values.controller.initContainers}}
+      - name: {{$value1.name}}
+        image: {{$value1.image}}
+        command: {{ $value1.command | toJson }}
+        volumeMounts:
+        {{- range $key2,$value2 := $value1.volumeMounts}}
+        - name: {{$value2.name}}
+          mountPath: {{ $value2.mountPath | quote }}
+        {{- end }} 
+      {{- end }} 
+      containers:
+      - image: {{.Values.controller.image}}:{{.Values.controller.tagLabel}}
+        imagePullPolicy: IfNotPresent
+        name: {{.Values.controller.componentName}}
+        ports:
+        {{- range .Values.controller.containerPorts}}
+        - containerPort: {{.}}
+          protocol: TCP
+        {{- end }}
+        {{- with .Values.controller.readinessProbe }}
+        readinessProbe:
+          failureThreshold: {{.failureThreshold}}
+          httpGet:
+          {{- with .httpGet}}
+            path: {{.path}}
+            port: {{.port}}
+            scheme: {{.scheme}}
+          {{- end}}
+          periodSeconds: {{.periodSeconds}}
+          successThreshold: {{.successThreshold}}
+          timeoutSeconds: {{.timeoutSeconds}}
+        {{- end }}
+        resources: {}
+        terminationMessagePath: {{ .Values.controller.terminationMessagePath}}
+        terminationMessagePolicy: {{ .Values.controller.terminationMessagePolicy}}
+        volumeMounts:
+        - mountPath: /var/run
+          name: docker-sock
+        - name: data-disk
+          mountPath: /var/jenkins_home
+        - name: docker
+          subPath: "docker"
+          mountPath: "/usr/local/bin/docker"
+        - name: kubectl
+          subPath: "kubectl"
+          mountPath: "/usr/local/bin/kubectl"
+      dnsPolicy: {{.Values.controller.dnsPolicy}}
+      restartPolicy: {{.Values.controller.restartPolicy}}
+      schedulerName: {{.Values.controller.schedulerName}}
+      terminationGracePeriodSeconds: {{.Values.controller.terminationGracePeriodSeconds}}
+      volumes:
+      - hostPath:
+          path: /var/run
+          type: ""
+        name: docker-sock
+      - name: data-disk
+        persistentVolumeClaim:
+          claimName: {{.Values.persistence.claimName}}
+      - name: docker
+        emptyDir: {}
+      - name: kubectl
+        emptyDir: {}

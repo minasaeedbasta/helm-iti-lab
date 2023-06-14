@@ -1,0 +1,13 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: pv-jenkins
+  namespace: {{.Values.namespace}}
+spec:
+  #storageClassName: manual
+  capacity:
+    storage: {{.Values.persistence.size}}
+  accessModes:
+    - {{.Values.persistence.accessMode}}
+  hostPath:
+    path: "/root/jen"

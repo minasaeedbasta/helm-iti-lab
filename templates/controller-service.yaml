@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins-loadbalancer
+  namespace: {{.Values.namespace}}
+spec:
+  type: {{.Values.controller.serviceType}}
+  selector:
+    app: {{.Values.controller.componentName}}
+  ports:
+    - protocol: TCP
+      port: {{.Values.controller.servicePort}}
+      targetPort: {{.Values.controller.targetPort}}
+      name: http

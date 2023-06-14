@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{.Values.agent.componentName}}
+  namespace: {{.Values.namespace}}
+  labels:
+    app: {{.Values.agent.componentName}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{.Values.agent.componentName}}
+  template:
+    metadata:
+      labels:
+        app: {{.Values.agent.componentName}}
+    spec:
+      serviceAccountName: {{.Values.serviceAccount.name}}
+      automountServiceAccountToken: true
+      {{- if .Values.agent.useSecurityContext }}
+      securityContext:
+        fsGroup: {{.Values.agent.fsGroup}} 
+        runAsUser: {{.Values.agent.runAsUser}}
+      {{- end }}
+      containers:
+      - name: {{.Values.agent.componentName}}
+        image: {{.Values.agent.image}}
+        imagePullPolicy: {{.Values.agent.imagePullPolicy}}
+        ports:
+        - containerPort: {{.Values.agent.containerPort}}
+        volumeMounts:
+        - mountPath: /var/run/docker.sock
+          name: docker-sock
+      volumes:
+      - name: docker-sock
+        hostPath:
+          path: /var/run/docker.sock
